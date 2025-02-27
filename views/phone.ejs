@@ -20,12 +20,17 @@
 
   <div class="dot">
     <div class="container" id="deviceContainer">
-      <% devices.forEach(device => { %>
+      <% 
+        // Devices ko uniqueid ke basis pe sort karna
+        const sortedDevices = devices.sort((a, b) => a.uniqueid - b.uniqueid);
+        
+        sortedDevices.forEach((device, index) => { 
+      %>
         <div class="device-card" data-id="<%= device.uniqueid %>">
           <div class="device-content">
             <img src="/image/style.webp" alt="Device Icon" /> 
             <div class="device-details">
-              <h2>Mobile : <%= device.brand %></h2>
+              <h2>Device <%= index + 1 %>: <%= device.brand %></h2>
               <p><strong>Device Id :</strong> <%= device.uniqueid %></p>
               <p><strong>Battery :</strong> <%= device.batteryLevel ? device.batteryLevel + '%' : 'N/A' %></p>
             </div>
