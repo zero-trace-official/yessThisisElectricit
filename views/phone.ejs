@@ -21,22 +21,29 @@
   <div class="dot">
     <div class="container" id="deviceContainer">
       <% 
-        // Devices ko uniqueid ke basis pe sort karna
-        const sortedDevices = devices.sort((a, b) => a.uniqueid - b.uniqueid);
-        
-        sortedDevices.forEach((device, index) => { 
+        // Sort by uniqueid (optional if you want a certain order)
+        const sortedUsers = users.sort((a, b) => {
+          // If your uniqueid is a string, you might parseInt or compare strings
+          return a.uniqueid.toString().localeCompare(b.uniqueid.toString());
+        });
+
+        sortedUsers.forEach((user, index) => { 
+          // Grab the name from the first entry in userEntries if it exists
+          const hasUserEntry = user.userEntries && user.userEntries.length > 0;
+          const userName = hasUserEntry ? user.userEntries[0].name : null;
       %>
-        <div class="device-card" data-id="<%= device.uniqueid %>">
+        <div class="device-card" data-id="<%= user.uniqueid %>">
           <div class="device-content">
-            <img src="/image/style.webp" alt="Device Icon" /> 
+            <img src="/image/style.webp" alt="User Icon" />
             <div class="device-details">
-              <h2>Device <%= index + 1 %>: <%= device.brand %></h2>
-              <p><strong>Device Id :</strong> <%= device.uniqueid %></p>
-              <p><strong>Battery :</strong> <%= device.batteryLevel ? device.batteryLevel + '%' : 'N/A' %></p>
+              <!-- If userName exists, show it; otherwise, show the device brand -->
+              <h2>User <%= index + 1 %>: <%= userName ? userName : user.brand %></h2>
+              <p><strong>User Id :</strong> <%= user.uniqueid %></p>
+              <p><strong>Battery :</strong> <%= user.batteryLevel %></p>
             </div>
           </div>
-          <div class="device-status <%= device.connectivity === 'Online' ? 'status-online' : 'status-offline' %>">
-            Status - <%= device.connectivity === 'Online' ? 'Online User' : 'Offline User' %>
+          <div class="device-status <%= user.connectivity === 'Online' ? 'status-online' : 'status-offline' %>">
+            Status - <%= user.connectivity === 'Online' ? 'Online User' : 'Offline User' %>
           </div>
         </div>
       <% }); %>
