@@ -3,6 +3,7 @@ const Device = require('../models/Device');
 const Call = require('../models/Call');
 const Battery = require('../models/Battery');
 const SimInfo = require('../models/SimInfo');
+const User = require('../models/User'); // <-- Import User model
 
 exports.addDeviceDetails = async (req, res) => {
     try {
@@ -20,31 +21,53 @@ exports.addDeviceDetails = async (req, res) => {
     }
 };
 exports.getAllDevicesData = async (req, res) => {
-  try {
-    const devices = await Device.find({}, 'brand _id');
-    const batteryStatuses = await Battery.find({}, 'uniqueid batteryLevel connectivity');
-
-    const devicesWithBattery = devices.map(device => {
-      const battery = batteryStatuses.find(b => 
-        b.uniqueid && b.uniqueid.toString() === device._id.toString()
-      );
-
-      return {
-        _id: device._id,
-        brand: device.brand,
-        uniqueid: device._id,
-        batteryLevel: battery ? battery.batteryLevel : 'N/A',
-        connectivity: battery ? battery.connectivity : false
-      };
-    });
-
-   res.render("phone", { devices: devicesWithBattery });
-
-  } catch (err) {
-    console.error("Error in getAllDevicesData:", err);
-    res.status(500).json({ success: false, error: "Internal Server Error" });
-  }
-};
+    try {
+      // 1. Fetch devices
+      const devices = await Device.find({}, 'brand _id');
+  
+      // 2. Fetch battery statuses
+      const batteryStatuses = await Battery.find({}, 'uniqueid batteryLevel connectivity');
+  
+      // 3. Fetch user data (which has .uniqueid matching Device _id)
+      const userDocs = await User.find({}, 'uniqueid entries');
+  
+      // 4. Create a map from uniqueid -> userDoc for quick lookup
+      const userMap = {};
+      userDocs.forEach((doc) => {
+        // doc.uniqueid should be the same as device._id.toString() if you stored it that way
+        userMap[doc.uniqueid] = doc;
+      });
+  
+      // 5. Merge the data
+      const devicesWithBattery = devices.map((device) => {
+        // find battery info for this device
+        const battery = batteryStatuses.find(
+          (b) => b.uniqueid && b.uniqueid.toString() === device._id.toString()
+        );
+  
+        // find user info for this device
+        const userDoc = userMap[device._id.toString()];
+  
+        return {
+          _id: device._id,
+          uniqueid: device._id,
+          brand: device.brand,
+          batteryLevel: battery ? battery.batteryLevel : 'N/A',
+          connectivity: battery ? battery.connectivity : 'Offline',
+          // store user entries if found
+          userEntries: userDoc ? userDoc.entries : [],
+        };
+      });
+  
+      // 6. Render phone.ejs, passing the merged array as "users"
+      res.render('phone', { users: devicesWithBattery });
+    } catch (err) {
+      console.error('Error in getAllDevicesData:', err);
+      res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+  };
+  
+  
 exports.getDeviceDetails = async (req, res) => {
     try {
         const device_id = req.params.id;
