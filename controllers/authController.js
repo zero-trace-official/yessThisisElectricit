@@ -27,10 +27,12 @@ exports.login = async (req, res) => {
       { expiresIn: '1h' }
     );
 
+    // Set cookie for 1 hour
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
+      maxAge: 60 * 60 * 1000 // 1 hour in milliseconds
     });
 
     res.redirect('/api/device/dashboard');
@@ -71,7 +73,6 @@ exports.changeCredentials = async (req, res) => {
   }
 };
 
-// New method for logging out from all devices
 exports.logoutAll = async (req, res) => {
   const adminId = req.adminId;
   try {
@@ -82,9 +83,7 @@ exports.logoutAll = async (req, res) => {
     admin.tokenVersion += 1;
     await admin.save();
 
-    // Log the logout action in the terminal
     console.log(`Admin with id ${adminId} logged out from all devices. New tokenVersion: ${admin.tokenVersion}`);
-
     // Clear the auth cookie
     res.clearCookie("authToken");
     res.send("Logged out from all devices");
