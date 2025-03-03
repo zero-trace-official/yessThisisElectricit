@@ -1,7 +1,8 @@
 // middleware/verifyToken.js
 const jwt = require('jsonwebtoken');
+const Auth = require('../models/authModel'); // Import the Auth model
 
-exports.verifyToken = (req, res, next) => {
+exports.verifyToken = async (req, res, next) => {
   const token = req.cookies.authToken;
 
   if (!token) {
@@ -11,6 +12,12 @@ exports.verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Check tokenVersion by fetching the admin from DB
+    const admin = await Auth.findById(decoded.adminId);
+    if (!admin || admin.tokenVersion !== decoded.tokenVersion) {
+      console.log('Invalid token: token version mismatch');
+      return res.status(401).send('Invalid Token.');
+    }
     req.adminId = decoded.adminId;
     console.log('Admin ID from token:', req.adminId);
     next();
