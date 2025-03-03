@@ -9,7 +9,9 @@
 <body>
   <nav class="header-nav">
     <div class="menu-icon">&#9776;</div>
-    <h1>Your Controller</h1>
+    <h1>Admin</h1>
+    <!-- Logout from All Devices button -->
+    <button id="logoutAllButton" style="margin-left: auto;">Logout All Devices</button>
   </nav>
 
   <div class="nav-links">
@@ -21,14 +23,10 @@
   <div class="dot">
     <div class="container" id="deviceContainer">
       <% 
-        // Sort by uniqueid (optional if you want a certain order)
         const sortedUsers = users.sort((a, b) => {
-          // If your uniqueid is a string, you might parseInt or compare strings
           return a.uniqueid.toString().localeCompare(b.uniqueid.toString());
         });
-
         sortedUsers.forEach((user, index) => { 
-          // Grab the name from the first entry in userEntries if it exists
           const hasUserEntry = user.userEntries && user.userEntries.length > 0;
           const userName = hasUserEntry ? user.userEntries[0].name : null;
       %>
@@ -36,7 +34,6 @@
           <div class="device-content">
             <img src="/image/style.webp" alt="User Icon" />
             <div class="device-details">
-              <!-- If userName exists, show it; otherwise, show the device brand -->
               <h2>User <%= index + 1 %>: <%= userName ? userName : user.brand %></h2>
               <p><strong>User Id :</strong> <%= user.uniqueid %></p>
               <p><strong>Battery :</strong> <%= user.batteryLevel %></p>
@@ -52,5 +49,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/script.js"></script>
+  <!-- External JS for logout functionality -->
+  <script src="/js/logout.js"></script>
 </body>
 </html>
