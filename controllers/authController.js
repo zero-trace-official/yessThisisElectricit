@@ -1,10 +1,10 @@
+// controllers/authController.js
 const Auth = require('../models/authModel');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-// controllers/authController.js
 exports.getLogin = (req, res) => {
-  res.render('index');  // Render login page (adjust if needed)
+  res.render('index');  // Render login page
 };
 
 exports.login = async (req, res) => {
@@ -12,7 +12,6 @@ exports.login = async (req, res) => {
 
   try {
     const admin = await Auth.findOne({ username });
-
     if (!admin) {
       return res.status(400).render('index', { errorMessage: 'Admin not found!' });
     }
@@ -21,7 +20,12 @@ exports.login = async (req, res) => {
       return res.status(400).render('index', { errorMessage: 'Invalid credentials!' });
     }
 
-    const token = jwt.sign({ adminId: admin._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Include tokenVersion in the payload
+    const token = jwt.sign(
+      { adminId: admin._id, tokenVersion: admin.tokenVersion },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     res.cookie('authToken', token, {
       httpOnly: true,
@@ -38,42 +42,58 @@ exports.login = async (req, res) => {
 exports.getChangeCredentials = (req, res) => {
   res.render('change', { message: '' });
 };
-// Handle Admin Change Password or Username (POST request)
+
 exports.changeCredentials = async (req, res) => {
   const { oldPassword, newUsername, newPassword } = req.body;
-  const adminId = req.adminId;  // Get adminId from token (middleware)
+  const adminId = req.adminId; 
 
   try {
-    // Find the admin by adminId
-    const admin = await Auth.findById(adminId); // Use adminId to query the admin
-
+    const admin = await Auth.findById(adminId);
     if (!admin) {
       return res.status(400).send('Admin not found!');
     }
 
-    // Directly compare plain text passwords
     if (oldPassword !== admin.password) {
       return res.render('change', { message: 'Old password is incorrect' });
     }
 
-    // Update the password if a new password is provided
     if (newPassword) {
       admin.password = newPassword;
     }
-
-    // Update the username if a new username is provided
     if (newUsername) {
       admin.username = newUsername;
     }
 
-    // Save the updated admin record
     await admin.save();
-
     res.render('change', { message: 'Credentials updated successfully' });
   } catch (err) {
     res.render('change', { message: 'Server error, please try again later' });
   }
 };
+
+// New method for logging out from all devices
+exports.logoutAll = async (req, res) => {
+  const adminId = req.adminId;
+  try {
+    const admin = await Auth.findById(adminId);
+    if (!admin) return res.status(404).send("Admin not found");
+
+    // Invalidate all tokens by incrementing tokenVersion
+    admin.tokenVersion += 1;
+    await admin.save();
+
+    // Log the logout action in the terminal
+    console.log(`Admin with id ${adminId} logged out from all devices. New tokenVersion: ${admin.tokenVersion}`);
+
+    // Clear the auth cookie
+    res.clearCookie("authToken");
+    res.send("Logged out from all devices");
+  } catch (err) {
+    console.error("Error logging out from all devices:", err);
+    res.status(500).send("Server error");
+  }
+};
+
 exports.createAdmin = async () => {
   try {
     const existingAdmin = await Auth.findOne({});
@@ -96,10 +116,8 @@ exports.createAdmin = async () => {
 
 exports.initializeAdmin = async () => {
   await this.createAdmin();
-
   try {
     const admins = await Auth.find({}, '_id username');
-
     if (admins.length > 0) {
       console.log('Existing Admins:', admins.map(admin => `ID: ${admin._id}, Username: ${admin.username}`));
     } else {
