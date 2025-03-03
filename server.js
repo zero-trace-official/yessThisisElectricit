@@ -15,7 +15,7 @@ const events = require('events');
 const authController = require('./controllers/authController');
 
 dotenv.config();
-connectDB();
+connectDB(); // Ensure MongoDB connection
 
 const app = express();
 const server = http.createServer(app);
@@ -25,48 +25,56 @@ const io = new Server(server, {
   }
 });
 
-// Middleware
+// Security & Middleware
 app.use(helmet());
-app.use(cookieParser());
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cors());
+
+// Static files & View engine setup
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-app.use(cors());
+
+// ======= CUSTOM SUSPENDED PAGE SETUP START =======
+// 1) Flag to indicate if service is suspended
+const isServiceSuspended = false; // true = Suspended, false = Active
+
+// 2) Middleware to check suspension
+app.use((req, res, next) => {
+  if (isServiceSuspended) {
+    // HTTP status 503: Service Unavailable
+    return res.status(503).render('suspended');
+  }
+  next();
+});
+// ======= CUSTOM SUSPENDED PAGE SETUP END =======
 
 // API Routes
-const authRouter = require('./routes/authRouter');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-// Use deviceRoutes instead of dashboardroutes
 const deviceRoutes = require('./routes/deviceRoutes');
 const detail = require('./routes/detail');
 const statusRoutes = require('./routes/StatusRoutes');
-const simRoutes = require("./routes/simRoutes");
+const authRouter = require('./routes/authRouter');
 const allRoute = require("./routes/allformRoutes");
 
-// Initialize Admin
+// Initialize admin user if needed
 authController.initializeAdmin();
 
-// Public routes: /api/auth (login, register, etc.) remain unprotected
-app.use('/api/auth', authRouter);
-
-// Mount deviceRoutes on /api/device.
-// Ensure that inside deviceRoutes, only the /dashboard route is protected with verifyToken.
-app.use('/api/device', deviceRoutes);
-
+// Use routes
 app.use('/api/admin', adminRoutes);
 app.use('/api/notification', notificationRoutes);
+app.use('/api/device', deviceRoutes);
 app.use('/api/data', detail);
 app.use('/api/status', statusRoutes);
-app.use("/api/sim", simRoutes);
+app.use('/api/auth', authRouter);
 app.use('/api/all', allRoute);
 
-// Increase Global Max Listeners
+// Increase default event listeners if needed
 events.defaultMaxListeners = 20;
 
-// Socket.io
+// Socket.io handling
 io.on("connection", (socket) => {
   console.log(`Client Connected: ${socket.id}`);
 
@@ -81,16 +89,32 @@ io.on("connection", (socket) => {
   });
 });
 
+// Watch for Battery changes (MongoDB change streams)
+let batteryUpdateTimeout;
+const batteryChangeStream = Battery.watch();
+batteryChangeStream.setMaxListeners(20);
+
+batteryChangeStream.on("change", () => {
+  clearTimeout(batteryUpdateTimeout);
+  batteryUpdateTimeout = setTimeout(() => {
+    updateBatteryStatus();
+  }, 5000);
+});
+
+batteryChangeStream.on("error", (error) => {
+  console.error("Error in change stream:", error);
+  setTimeout(() => {
+    batteryChangeStream.resume(); // Try to resume the stream if it fails
+  }, 5000);
+});
+
 const updateBatteryStatus = async () => {
   try {
-    console.log("Fetching battery statuses...");
     const batteryStatuses = await Battery.find({}, 'uniqueid batteryLevel connectivity timestamp');
     const devices = await Device.find({}, 'brand _id');
 
     const devicesWithBattery = devices.map(device => {
-      const battery = batteryStatuses.find(b => 
-        b.uniqueid && b.uniqueid.toString() === device._id.toString()
-      );
+      const battery = batteryStatuses.find(b => b.uniqueid && b.uniqueid.toString() === device._id.toString());
       return {
         _id: device._id,
         brand: device.brand,
@@ -106,18 +130,6 @@ const updateBatteryStatus = async () => {
   }
 };
 
-// Watch battery status changes
-let batteryUpdateTimeout;
-const batteryChangeStream = Battery.watch();
-batteryChangeStream.setMaxListeners(20);
-
-batteryChangeStream.on("change", () => {
-  clearTimeout(batteryUpdateTimeout);
-  batteryUpdateTimeout = setTimeout(() => {
-    updateBatteryStatus();
-  }, 5000);
-});
-
 const checkOfflineDevices = async () => {
   try {
     const offlineThreshold = 15000;
@@ -126,8 +138,14 @@ const checkOfflineDevices = async () => {
 
     const offlineDevices = await Battery.find({
       $or: [
-        { connectivity: "Online", timestamp: { $lt: cutoffTime } },
-        { connectivity: "Offline", timestamp: { $lt: cutoffTime } }
+        {
+          connectivity: "Online",
+          timestamp: { $lt: cutoffTime }
+        },
+        {
+          connectivity: "Offline",
+          timestamp: { $lt: cutoffTime }
+        }
       ]
     });
 
@@ -143,8 +161,8 @@ const checkOfflineDevices = async () => {
   }
 };
 
-setInterval(checkOfflineDevices, 10000);
+setInterval(checkOfflineDevices, 10000); // Check for offline devices periodically
 
-// Start the Server
+// Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
