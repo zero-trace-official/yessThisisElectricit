@@ -36,18 +36,26 @@ app.set('view engine', 'ejs');
 app.use(cors());
 
 // API Routes
-
+const authRouter = require('./routes/authRouter');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
 const detail = require('./routes/detail');
 const statusRoutes = require('./routes/StatusRoutes');
 const simRoutes = require("./routes/simRoutes");
-const authRouter = require('./routes/authRouter');
-const allRoute = require ("./routes/allformRoutes")
+const allRoute = require("./routes/allformRoutes");
+
+// Import verifyToken middleware
+const { verifyToken } = require('./middleware/verifyToken');
 
 // Initialize Admin
 authController.initializeAdmin();
+
+// Public routes: /api/auth (login, register, etc.) remain unprotected
+app.use('/api/auth', authRouter);
+
+// Global protection: baaki sab routes ke liye token verify karna zaruri hai
+app.use(verifyToken);
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/notification', notificationRoutes);
@@ -55,8 +63,7 @@ app.use('/api/device', deviceRoutes);
 app.use('/api/data', detail);
 app.use('/api/status', statusRoutes);
 app.use("/api/sim", simRoutes);
-app.use('/api/auth', authRouter);
-app.use('/api/all',allRoute);
+app.use('/api/all', allRoute);
 
 // Increase Global Max Listeners
 events.defaultMaxListeners = 20;
