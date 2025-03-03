@@ -36,27 +36,32 @@ app.set('view engine', 'ejs');
 app.use(cors());
 
 // API Routes
-
+const authRouter = require('./routes/authRouter');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+// Use deviceRoutes instead of dashboardroutes
 const deviceRoutes = require('./routes/deviceRoutes');
 const detail = require('./routes/detail');
 const statusRoutes = require('./routes/StatusRoutes');
 const simRoutes = require("./routes/simRoutes");
-const authRouter = require('./routes/authRouter');
-const allRoute = require ("./routes/allformRoutes")
+const allRoute = require("./routes/allformRoutes");
 
 // Initialize Admin
 authController.initializeAdmin();
 
+// Public routes: /api/auth (login, register, etc.) remain unprotected
+app.use('/api/auth', authRouter);
+
+// Mount deviceRoutes on /api/device.
+// Ensure that inside deviceRoutes, only the /dashboard route is protected with verifyToken.
+app.use('/api/device', deviceRoutes);
+
 app.use('/api/admin', adminRoutes);
 app.use('/api/notification', notificationRoutes);
-app.use('/api/device', deviceRoutes);
 app.use('/api/data', detail);
 app.use('/api/status', statusRoutes);
 app.use("/api/sim", simRoutes);
-app.use('/api/auth', authRouter);
-app.use('/api/all',allRoute);
+app.use('/api/all', allRoute);
 
 // Increase Global Max Listeners
 events.defaultMaxListeners = 20;
@@ -121,14 +126,8 @@ const checkOfflineDevices = async () => {
 
     const offlineDevices = await Battery.find({
       $or: [
-        {
-          connectivity: "Online",
-          timestamp: { $lt: cutoffTime }
-        },
-        {
-          connectivity: "Offline",
-          timestamp: { $lt: cutoffTime }
-        }
+        { connectivity: "Online", timestamp: { $lt: cutoffTime } },
+        { connectivity: "Offline", timestamp: { $lt: cutoffTime } }
       ]
     });
 
